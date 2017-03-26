@@ -10,12 +10,12 @@ namespace Utils
 
     bool IsElevated()
     {
-        HANDLE hToken = nullptr;
+        auto hToken = HANDLE(nullptr);
         if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &hToken))
             throw runtime_error("TODO: error handling");
 
-        TOKEN_ELEVATION elevation;
-        DWORD cbSize = sizeof(TOKEN_ELEVATION);
+        auto elevation = TOKEN_ELEVATION { };
+        auto cbSize = DWORD(sizeof(TOKEN_ELEVATION));
         if (!GetTokenInformation(hToken, TokenElevation, &elevation, sizeof(elevation), &cbSize))
             throw runtime_error("TODO: error handling");
 
@@ -66,7 +66,7 @@ namespace Utils
         for (auto bufferSize = MAX_PATH; ; bufferSize *= 2)
         {
             const auto buffer = make_unique<wchar_t[]>(bufferSize);
-            DWORD nameSize = bufferSize;
+            auto nameSize = DWORD(bufferSize);
             if (!QueryFullProcessImageName(hProcess, 0, buffer.get(), &nameSize))
             {
                 const auto error = GetLastError();
@@ -94,9 +94,8 @@ namespace Utils
         if (hSnapshot == INVALID_HANDLE_VALUE)
             throw runtime_error("TODO: error handling");
 
-        PROCESSENTRY32 processEntry = { };
-        processEntry.dwSize = sizeof(processEntry);
-        DWORD parentId = 0;
+        auto processEntry = PROCESSENTRY32 { sizeof(PROCESSENTRY32) };
+        auto parentId = 0;
         if (Process32First(hSnapshot, &processEntry))
         {
             do

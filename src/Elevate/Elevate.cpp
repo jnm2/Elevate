@@ -31,8 +31,7 @@ wstring GetDefaultCommandLine()
 
 void ElevateSelf(wstring rawCommandLineArgs)
 {
-    SHELLEXECUTEINFO info = {};
-    info.cbSize = sizeof(info);
+    auto info = SHELLEXECUTEINFO { sizeof(SHELLEXECUTEINFO) };
     info.fMask = SEE_MASK_NOCLOSEPROCESS | SEE_MASK_NO_CONSOLE;
     info.lpVerb = L"runas";
 
@@ -54,9 +53,8 @@ void ElevateSelf(wstring rawCommandLineArgs)
 
 void ExecuteCommand(wstring rawCommandLineArgs)
 {
-    STARTUPINFO si = { };
-    si.cb = sizeof(si);
-    PROCESS_INFORMATION pi = { };
+    auto si = STARTUPINFO { sizeof(STARTUPINFO) };
+    auto pi = PROCESS_INFORMATION { };
 
     if (!CreateProcess(nullptr, const_cast<LPWSTR>(rawCommandLineArgs.c_str()), nullptr, nullptr, false, 0, nullptr, nullptr, &si, &pi))
         throw runtime_error("TODO: error handling");
