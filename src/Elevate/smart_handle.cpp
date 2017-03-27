@@ -1,10 +1,11 @@
 #include "smart_handle.h"
 #include <stdexcept>
+#include "Win32Exception.h"
 
 smart_handle::smart_handle(const HANDLE value) : handle(std::shared_ptr<void>(value, [](const HANDLE value)
 {
     if (value && value != INVALID_HANDLE_VALUE && !CloseHandle(value))
-        throw std::runtime_error("TODO: error handling");
+        throw Win32Exception();
 }))
 {
 }

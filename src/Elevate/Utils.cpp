@@ -1,9 +1,9 @@
 #include <iostream>
 #include <memory>
-#include <string>
 #include <Windows.h>
 #include <TlHelp32.h>
 #include "smart_handle.h"
+#include "Win32Exception.h"
 
 namespace Utils
 {
@@ -13,13 +13,13 @@ namespace Utils
     {
         auto hTokenOutParameter = HANDLE(nullptr);
         if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &hTokenOutParameter))
-            throw runtime_error("TODO: error handling");
+            throw Win32Exception();
         const auto hToken = smart_handle(hTokenOutParameter);
 
         auto elevation = TOKEN_ELEVATION { };
         auto cbSize = DWORD(sizeof(TOKEN_ELEVATION));
         if (!GetTokenInformation(hToken, TokenElevation, &elevation, sizeof(elevation), &cbSize))
-            throw runtime_error("TODO: error handling");
+            throw Win32Exception();
 
         return elevation.TokenIsElevated;
     }
@@ -50,7 +50,7 @@ namespace Utils
         {
             const auto buffer = make_unique<wchar_t[]>(bufferSize);
             const auto nameSize = GetModuleFileName(nullptr, buffer.get(), bufferSize);
-            if (nameSize == 0) throw runtime_error("TODO: error handling");
+            if (nameSize == 0) throw Win32Exception();
 
             if (!(nameSize == bufferSize && buffer[nameSize - 1]) && GetLastError() != ERROR_INSUFFICIENT_BUFFER)
                 return wstring(buffer.get(), nameSize);
@@ -60,7 +60,7 @@ namespace Utils
     wstring GetProcessPath(const DWORD pid)
     {
         const auto hProcess = smart_handle(OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid));
-        if (hProcess == nullptr) throw runtime_error("TODO: error handling");
+        if (hProcess == nullptr) throw Win32Exception();
 
         for (auto bufferSize = MAX_PATH; ; bufferSize *= 2)
         {
@@ -70,7 +70,7 @@ namespace Utils
             {
                 const auto error = GetLastError();
                 if (error == ERROR_INSUFFICIENT_BUFFER) continue;
-                throw runtime_error("TODO: error handling");
+                throw Win32Exception(error);
             }
 
             return wstring(buffer.get(), nameSize);
@@ -87,8 +87,7 @@ namespace Utils
     DWORD GetParentProcessId(const DWORD pid)
     {
         const auto hSnapshot = smart_handle(CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0));
-        if (hSnapshot == INVALID_HANDLE_VALUE)
-            throw runtime_error("TODO: error handling");
+        if (hSnapshot == INVALID_HANDLE_VALUE) throw Win32Exception();
 
         auto processEntry = PROCESSENTRY32 { sizeof(PROCESSENTRY32) };
         if (Process32First(hSnapshot, &processEntry))

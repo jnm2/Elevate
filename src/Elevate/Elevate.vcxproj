@@ -142,10 +142,12 @@
     <ClCompile Include="Elevate.cpp" />
     <ClCompile Include="smart_handle.cpp" />
     <ClCompile Include="Utils.cpp" />
+    <ClCompile Include="Win32Exception.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="smart_handle.h" />
     <ClInclude Include="Utils.h" />
+    <ClInclude Include="Win32Exception.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
