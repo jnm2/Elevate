@@ -3,6 +3,7 @@
 #include <string>
 #include <Windows.h>
 #include <TlHelp32.h>
+#include "smart_handle.h"
 
 namespace Utils
 {
@@ -10,16 +11,14 @@ namespace Utils
 
     bool IsElevated()
     {
-        auto hToken = HANDLE(nullptr);
-        if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &hToken))
+        auto hTokenOutParameter = HANDLE(nullptr);
+        if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &hTokenOutParameter))
             throw runtime_error("TODO: error handling");
+        const auto hToken = smart_handle(hTokenOutParameter);
 
         auto elevation = TOKEN_ELEVATION { };
         auto cbSize = DWORD(sizeof(TOKEN_ELEVATION));
         if (!GetTokenInformation(hToken, TokenElevation, &elevation, sizeof(elevation), &cbSize))
-            throw runtime_error("TODO: error handling");
-
-        if (hToken && !CloseHandle(hToken))
             throw runtime_error("TODO: error handling");
 
         return elevation.TokenIsElevated;
@@ -60,7 +59,7 @@ namespace Utils
 
     wstring GetProcessPath(const DWORD pid)
     {
-        const auto hProcess = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid);
+        const auto hProcess = smart_handle(OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid));
         if (hProcess == nullptr) throw runtime_error("TODO: error handling");
 
         for (auto bufferSize = MAX_PATH; ; bufferSize *= 2)
@@ -73,9 +72,6 @@ namespace Utils
                 if (error == ERROR_INSUFFICIENT_BUFFER) continue;
                 throw runtime_error("TODO: error handling");
             }
-
-            if (!CloseHandle(hProcess))
-                throw runtime_error("TODO: error handling");
 
             return wstring(buffer.get(), nameSize);
         }
@@ -90,27 +86,20 @@ namespace Utils
 
     DWORD GetParentProcessId(const DWORD pid)
     {
-        const auto hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+        const auto hSnapshot = smart_handle(CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0));
         if (hSnapshot == INVALID_HANDLE_VALUE)
             throw runtime_error("TODO: error handling");
 
         auto processEntry = PROCESSENTRY32 { sizeof(PROCESSENTRY32) };
-        auto parentId = 0;
         if (Process32First(hSnapshot, &processEntry))
         {
             do
             {
                 if (processEntry.th32ProcessID == pid)
-                {
-                    parentId = processEntry.th32ParentProcessID;
-                    break;
-                }
+                    return processEntry.th32ParentProcessID;
             } while (Process32Next(hSnapshot, &processEntry));
         }
 
-        if (!CloseHandle(hSnapshot))
-            throw runtime_error("TODO: error handling");
-
-        return parentId;
+        return 0;
     }
 }

@@ -2,6 +2,7 @@
 #include <iostream>
 #include <Windows.h>
 #include "Utils.h"
+#include "smart_handle.h"
 
 using namespace std;
 
@@ -44,10 +45,9 @@ void ElevateSelf(wstring rawCommandLineArgs)
     if (!ShellExecuteEx(&info))
         throw runtime_error("TODO: error handling");
 
-    if (WaitForSingleObject(info.hProcess, INFINITE) == WAIT_FAILED)
-        throw runtime_error("TODO: error handling");
+    const auto hProcess = smart_handle(info.hProcess);
 
-    if (!CloseHandle(info.hProcess))
+    if (WaitForSingleObject(hProcess, INFINITE) == WAIT_FAILED)
         throw runtime_error("TODO: error handling");
 }
 
@@ -59,13 +59,10 @@ void ExecuteCommand(wstring rawCommandLineArgs)
     if (!CreateProcess(nullptr, const_cast<LPWSTR>(rawCommandLineArgs.c_str()), nullptr, nullptr, false, 0, nullptr, nullptr, &si, &pi))
         throw runtime_error("TODO: error handling");
 
-    if (WaitForSingleObject(pi.hProcess, INFINITE) == WAIT_FAILED)
-        throw runtime_error("TODO: error handling");
+    const auto hProcess = smart_handle(pi.hProcess);
+    const auto hThread = smart_handle(pi.hThread);
 
-    if (!CloseHandle(pi.hProcess))
-        throw runtime_error("TODO: error handling");
-
-    if (!CloseHandle(pi.hThread))
+    if (WaitForSingleObject(hProcess, INFINITE) == WAIT_FAILED)
         throw runtime_error("TODO: error handling");
 }
 
@@ -73,8 +70,6 @@ int main()
 {
     return Utils::StandardMain([]() -> void
     {
-        // TODO: RAII win32 cleanup
-
         auto args = wstring(Utils::GetRawCommandLineArgs());
 
         if (PopShouldAttachSelfToParent(&args))
