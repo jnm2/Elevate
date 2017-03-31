@@ -9,6 +9,7 @@ using namespace std;
 
 
 const auto attachMarker = wstring(L"ELEVATE__DO_ATTACH_SELF_TO_PARENT_CONSOLE ");
+auto mustReopenStdout = false;
 
 bool PopShouldAttachSelfToParent(wstring* rawCommandLineArgs)
 {
@@ -32,9 +33,9 @@ void AttachSelfToParent()
         throw exception;
     }
 
-    // So that errors can be printed
-    auto fp = static_cast<FILE*>(nullptr);
-    freopen_s(&fp, "CONOUT$", "w+", stdout); // Important: "w+" instead of "w" or else child process output will screw up
+    // Reopening now causes intermittent "application failed to initialize properly (0xc0000142)"
+    // errors in the process started by CreateProcess, and is a waste unless there is an error.
+    mustReopenStdout = true;
 
     // TODO: pull environment block for CreateProcess
 }
@@ -79,7 +80,7 @@ void ExecuteCommand(wstring rawCommandLineArgs)
 
 int main()
 {
-    return Utils::StandardMain([]() -> void
+    return Utils::StandardMain([]()
     {
         auto args = wstring(Utils::GetRawCommandLineArgs());
 
@@ -94,5 +95,21 @@ int main()
             return ElevateSelf(args);
 
         ExecuteCommand(args);
+    },
+        [](const char* error)
+    {
+        if (mustReopenStdout)
+        {
+            auto fp = static_cast<FILE*>(nullptr);
+            freopen_s(&fp, "CONOUT$", "w+", stdout); // (Previously important: "w+" instead of "w" or else child process output will screw up)
+
+            cout << error;
+
+            // No cleanup necessary because the process is going down next
+        }
+        else
+        {
+            cout << error;
+        }
     });
 }

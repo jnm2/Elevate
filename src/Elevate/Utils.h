@@ -10,8 +10,8 @@ namespace Utils
     DWORD GetParentProcessId(DWORD pid);
 
 
-    template<typename Func>
-    int StandardMain(const Func implementation)
+    template<typename TImplementation, typename TErrorHandler>
+    int StandardMain(const TImplementation implementation, const TErrorHandler errorHandler)
     {
         try
         {
@@ -19,12 +19,12 @@ namespace Utils
         }
         catch (const std::exception& ex)
         {
-            std::cout << ex.what();
+            errorHandler(ex.what());
             return -1;
         }
         catch (...)
         {
-            std::cout << "Unknown error\r\n";
+            errorHandler("Unknown error\r\n");
             return -1;
         }
 
