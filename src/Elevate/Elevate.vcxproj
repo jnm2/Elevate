@@ -140,11 +140,15 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Elevate.cpp" />
+    <ClCompile Include="EnvironmentStrings.cpp" />
+    <ClCompile Include="FileMappingView.cpp" />
     <ClCompile Include="smart_handle.cpp" />
     <ClCompile Include="Utils.cpp" />
     <ClCompile Include="Win32Exception.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="EnvironmentStrings.h" />
+    <ClInclude Include="FileMappingView.h" />
     <ClInclude Include="smart_handle.h" />
     <ClInclude Include="Utils.h" />
     <ClInclude Include="Win32Exception.h" />
