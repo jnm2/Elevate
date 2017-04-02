@@ -24,7 +24,25 @@ bool PopShouldAttachSelfToParent(wstring* rawCommandLineArgs, wstring* fileMappi
     return true;
 }
 
-void AttachSelfToParent(wstring fileMappingName)
+
+class EnvironmentStringsSource
+{
+    FileMappingView hMappingView;
+    LPWCH rawEnvironmentStrings;
+
+public:
+    EnvironmentStringsSource(FileMappingView hMappingView, LPWCH rawEnvironmentStrings)
+        : hMappingView(hMappingView), rawEnvironmentStrings(rawEnvironmentStrings)
+    {
+    }
+
+    LPWCH get() const
+    {
+        return rawEnvironmentStrings;
+    }
+};
+
+void AttachSelfToParent(wstring fileMappingName, shared_ptr<EnvironmentStringsSource>* rawEnvironmentStringsSource)
 {
     FreeConsole(); // It's okay if this fails
 
@@ -46,6 +64,7 @@ void AttachSelfToParent(wstring fileMappingName)
     if (!hMapping) throw Win32Exception();
 
     const auto hMappingView = FileMappingView(hMapping, FILE_MAP_READ, 0, 0, 0);
+
     auto mappingPosition = LPWCH(LPVOID(hMappingView));
 
     // Restore working directory
@@ -53,6 +72,8 @@ void AttachSelfToParent(wstring fileMappingName)
         throw Win32Exception();
     mappingPosition += wcslen(mappingPosition) + 1;
 
+    // Provide environment strings for CreateProcess
+    *rawEnvironmentStringsSource = make_shared<EnvironmentStringsSource>(hMappingView, mappingPosition);
 
     // Set the environment variables in this process rather than just passing to CreateProcess
     // in case it should be affecting the command line passed to CreateProcess.
@@ -139,15 +160,13 @@ void ElevateSelf(wstring rawCommandLineArgs)
     if (WaitForSingleObject(hProcess, INFINITE) == WAIT_FAILED) throw Win32Exception();
 }
 
-void ExecuteCommand(wstring rawCommandLineArgs)
+void ExecuteCommand(wstring rawCommandLineArgs, shared_ptr<EnvironmentStringsSource> environmentStringsSource)
 {
     auto si = STARTUPINFO { sizeof(STARTUPINFO) };
     auto pi = PROCESS_INFORMATION { };
+    const auto environmentStrings = environmentStringsSource == nullptr ? nullptr : environmentStringsSource->get();
 
-    // TODO: pass entire enviroment block to CreateProcess to enable cmd.exe's use of nameless variables to remember working directory per drive
-    // https://blogs.msdn.microsoft.com/oldnewthing/20100506-00/?p=14133
-
-    if (!CreateProcess(nullptr, const_cast<LPWSTR>(rawCommandLineArgs.c_str()), nullptr, nullptr, false, 0, nullptr, nullptr, &si, &pi))
+    if (!CreateProcess(nullptr, const_cast<LPWSTR>(rawCommandLineArgs.c_str()), nullptr, nullptr, false, CREATE_UNICODE_ENVIRONMENT, environmentStrings, nullptr, &si, &pi))
         throw Win32Exception();
 
     const auto hProcess = smart_handle(pi.hProcess);
@@ -163,8 +182,9 @@ int main()
         auto args = wstring(Utils::GetRawCommandLineArgs());
 
         auto fileMappingName = wstring { };
+        auto environmentStringsSource = shared_ptr<EnvironmentStringsSource> { };
         if (PopShouldAttachSelfToParent(&args, &fileMappingName))
-            AttachSelfToParent(fileMappingName);
+            AttachSelfToParent(fileMappingName, &environmentStringsSource);
 
         if (Utils::IsWhiteSpace(args))
             args = GetDefaultCommandLine();
@@ -173,7 +193,7 @@ int main()
         if (!Utils::IsElevated())
             return ElevateSelf(args);
 
-        ExecuteCommand(args);
+        ExecuteCommand(args, environmentStringsSource);
     },
         [](const char* error)
     {
