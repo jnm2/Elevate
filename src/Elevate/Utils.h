@@ -8,7 +8,7 @@ namespace Utils
     std::wstring GetProcessPath(DWORD pid);
     bool IsWhiteSpace(std::wstring value);
     DWORD GetParentProcessId(DWORD pid);
-
+    std::wstring GetCurrentDirectory();
 
     template<typename TImplementation, typename TErrorHandler>
     int StandardMain(const TImplementation implementation, const TErrorHandler errorHandler)

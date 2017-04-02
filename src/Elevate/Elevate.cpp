@@ -42,14 +42,20 @@ void AttachSelfToParent(wstring fileMappingName)
     mustReopenStdout = true;
 
 
-    // Set the environment variables in this process rather than just passing to CreateProcess
-    // in case it should be affecting the command line passed to CreateProcess.
     const auto hMapping = smart_handle(OpenFileMapping(FILE_MAP_READ, false, fileMappingName.c_str()));
     if (!hMapping) throw Win32Exception();
 
     const auto hMappingView = FileMappingView(hMapping, FILE_MAP_READ, 0, 0, 0);
+    auto mappingPosition = LPWCH(LPVOID(hMappingView));
+
+    // Restore working directory
+    if (!SetCurrentDirectory(mappingPosition))
+        throw Win32Exception();
+    mappingPosition += wcslen(mappingPosition) + 1;
 
 
+    // Set the environment variables in this process rather than just passing to CreateProcess
+    // in case it should be affecting the command line passed to CreateProcess.
     auto leftOverNames = unordered_set<wstring>();
     {
         const auto environmentStrings = EnvironmentStrings();
@@ -63,12 +69,12 @@ void AttachSelfToParent(wstring fileMappingName)
     }
 
     // Add new variables
-    for (auto variable = LPWCH(LPVOID(hMappingView)); *variable; variable += wcslen(variable) + 1)
+    for (; *mappingPosition; mappingPosition += wcslen(mappingPosition) + 1)
     {
-        auto separator = wcschr(variable, L'=');
-        if (separator == variable) continue; // Missing name, causes SetEnvironmentVariable to error
+        auto separator = wcschr(mappingPosition, L'=');
+        if (separator == mappingPosition) continue; // Missing name, causes SetEnvironmentVariable to error
 
-        const auto name = wstring(variable, separator);
+        const auto name = wstring(mappingPosition, separator);
         if (!SetEnvironmentVariable(name.c_str(), separator + 1))
             throw Win32Exception();
         leftOverNames.erase(name);
@@ -99,16 +105,20 @@ wstring GetNewGuidString()
 void ElevateSelf(wstring rawCommandLineArgs)
 {
     const auto environmentStrings = EnvironmentStrings();
-    const auto environmentSize = environmentStrings.CalculateSize() * DWORD(sizeof(wchar_t));
+    const auto environmentSize = environmentStrings.CalculateSize() * sizeof(wchar_t);
+    const auto currentDirectory = Utils::GetCurrentDirectory();
+    const auto currentDirectorySize = (currentDirectory.length() + 1) * sizeof(wchar_t);
 
     const auto mappingName = GetNewGuidString();
-    const auto hMapping = smart_handle(CreateFileMapping(INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE, 0, environmentSize, mappingName.c_str()));
+    const auto hMapping = smart_handle(CreateFileMapping(INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE, 0, DWORD(currentDirectorySize + environmentSize), mappingName.c_str()));
     if (!hMapping) throw Win32Exception();
 
     {
         const auto hMappingView = FileMappingView(hMapping, FILE_MAP_WRITE, 0, 0, 0);
         if (!hMappingView) throw Win32Exception();
-        memcpy(hMappingView, environmentStrings, environmentSize);
+
+        memcpy(hMappingView, currentDirectory.c_str(), currentDirectorySize);
+        memcpy(static_cast<char*>(LPVOID(hMappingView)) + currentDirectorySize, environmentStrings, environmentSize);
     }
 
 

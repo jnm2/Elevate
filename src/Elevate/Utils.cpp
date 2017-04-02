@@ -77,6 +77,20 @@ namespace Utils
         }
     }
 
+    wstring GetCurrentDirectory()
+    {
+        const auto bufferSize = ::GetCurrentDirectory(0, nullptr);
+        if (bufferSize == 0) throw Win32Exception();
+
+        const auto buffer = make_unique<wchar_t[]>(bufferSize);
+        const auto numCopied = ::GetCurrentDirectory(bufferSize, buffer.get());
+        if (numCopied == 0) throw Win32Exception();
+
+        if (numCopied != bufferSize - 1) throw runtime_error("Race condition: current directory changed while retrieving it.");
+
+        return wstring(buffer.get(), numCopied);
+    }
+
     bool IsWhiteSpace(const wstring value)
     {
         for (auto &c : value)
