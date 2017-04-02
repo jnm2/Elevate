@@ -149,9 +149,13 @@
   <ItemGroup>
     <ClInclude Include="EnvironmentStrings.h" />
     <ClInclude Include="FileMappingView.h" />
+    <ClInclude Include="resource.h" />
     <ClInclude Include="smart_handle.h" />
     <ClInclude Include="Utils.h" />
     <ClInclude Include="Win32Exception.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Elevate.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
