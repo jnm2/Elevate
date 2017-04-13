@@ -21,6 +21,6 @@ DWORD EnvironmentStrings::CalculateSize() const
     {
         const auto stringSize = wcslen(current);
         current += stringSize + 1;
-        if (stringSize == 0) return current - start;
+        if (stringSize == 0) return static_cast<DWORD>(current - start);
     }
 }
