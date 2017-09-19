@@ -140,15 +140,19 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Noninteractive.cpp" />
+    <ClCompile Include="desktop_handle.cpp" />
     <ClCompile Include="smart_handle.cpp" />
     <ClCompile Include="Utils.cpp" />
     <ClCompile Include="Win32Exception.cpp" />
+    <ClCompile Include="window_station_handle.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h" />
+    <ClInclude Include="desktop_handle.h" />
     <ClInclude Include="smart_handle.h" />
     <ClInclude Include="Utils.h" />
     <ClInclude Include="Win32Exception.h" />
+    <ClInclude Include="window_station_handle.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Noninteractive.rc" />

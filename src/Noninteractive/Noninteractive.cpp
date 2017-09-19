@@ -3,6 +3,8 @@
 #include <Windows.h>
 #include "Utils.h"
 #include "smart_handle.h"
+#include "desktop_handle.h"
+#include "window_station_handle.h"
 #include "Win32Exception.h"
 
 using namespace std;
@@ -46,21 +48,18 @@ int main()
         {
             const auto nonInteractiveDesktopName = L"Noninteractive.exe";
 
-            const auto nonInteractiveStation = CreateWindowStation(nullptr, 0, GENERIC_READ, nullptr);
+            const auto nonInteractiveStation = window_station_handle(CreateWindowStation(nullptr, 0, GENERIC_READ, nullptr));
             if (nonInteractiveStation == nullptr) throw Win32Exception();
 
             if (!SetProcessWindowStation(nonInteractiveStation)) throw Win32Exception();
 
-            const auto desktop = CreateDesktop(nonInteractiveDesktopName, nullptr, nullptr, 0, GENERIC_ALL, nullptr);
+            const auto desktop = desktop_handle(CreateDesktop(nonInteractiveDesktopName, nullptr, nullptr, 0, GENERIC_ALL, nullptr));
             if (desktop == nullptr) throw Win32Exception();
 
             if (!SetProcessWindowStation(originalWindowStation)) throw Win32Exception();
 
             const auto desktopFullName = wstring(Utils::GetUserObjectName(nonInteractiveStation) + L'\\' + nonInteractiveDesktopName);
             ExecuteCommand(args, &desktopFullName);
-
-            CloseDesktop(desktop);
-            CloseWindowStation(nonInteractiveStation);
         }
         else
         {
