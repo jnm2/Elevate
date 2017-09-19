@@ -22,8 +22,8 @@
     <VCProjectVersion>15.0</VCProjectVersion>
     <ProjectGuid>{E69758D5-E8F7-41B1-A277-2E2854538474}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
-    <RootNamespace>Elevate</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.14393.0</WindowsTargetPlatformVersion>
+    <RootNamespace>Noninteractive</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0.15063.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -139,23 +139,19 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Elevate.cpp" />
-    <ClCompile Include="EnvironmentStrings.cpp" />
-    <ClCompile Include="FileMappingView.cpp" />
+    <ClCompile Include="Noninteractive.cpp" />
     <ClCompile Include="smart_handle.cpp" />
     <ClCompile Include="Utils.cpp" />
     <ClCompile Include="Win32Exception.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="EnvironmentStrings.h" />
-    <ClInclude Include="FileMappingView.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="smart_handle.h" />
     <ClInclude Include="Utils.h" />
     <ClInclude Include="Win32Exception.h" />
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="Elevate.rc" />
+    <ResourceCompile Include="Noninteractive.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

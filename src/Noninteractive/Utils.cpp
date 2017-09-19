@@ -9,21 +9,6 @@ namespace Utils
 {
     using namespace std;
 
-    bool IsElevated()
-    {
-        auto hTokenOutParameter = HANDLE(nullptr);
-        if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &hTokenOutParameter))
-            throw Win32Exception();
-        const auto hToken = smart_handle(hTokenOutParameter);
-
-        auto elevation = TOKEN_ELEVATION { };
-        auto cbSize = DWORD(sizeof(TOKEN_ELEVATION));
-        if (!GetTokenInformation(hToken, TokenElevation, &elevation, sizeof(elevation), &cbSize))
-            throw Win32Exception();
-
-        return elevation.TokenIsElevated;
-    }
-
     LPWSTR GetRawCommandLineArgs()
     {
         auto c = GetCommandLine();
@@ -44,19 +29,6 @@ namespace Utils
         return c;
     }
 
-    wstring GetCurrentProcessPath()
-    {
-        for (auto bufferSize = MAX_PATH; ; bufferSize *= 2)
-        {
-            const auto buffer = make_unique<wchar_t[]>(bufferSize);
-            const auto nameSize = GetModuleFileName(nullptr, buffer.get(), bufferSize);
-            if (nameSize == 0) throw Win32Exception();
-
-            if (!(nameSize == bufferSize && buffer[nameSize - 1]) && GetLastError() != ERROR_INSUFFICIENT_BUFFER)
-                return wstring(buffer.get(), nameSize);
-        }
-    }
-
     wstring GetProcessPath(const DWORD pid)
     {
         const auto hProcess = smart_handle(OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid));
@@ -75,20 +47,6 @@ namespace Utils
 
             return wstring(buffer.get(), nameSize);
         }
-    }
-
-    wstring GetCurrentDirectory()
-    {
-        const auto bufferSize = ::GetCurrentDirectory(0, nullptr);
-        if (bufferSize == 0) throw Win32Exception();
-
-        const auto buffer = make_unique<wchar_t[]>(bufferSize);
-        const auto numCopied = ::GetCurrentDirectory(bufferSize, buffer.get());
-        if (numCopied == 0) throw Win32Exception();
-
-        if (numCopied != bufferSize - 1) throw runtime_error("Race condition: current directory changed while retrieving it.");
-
-        return wstring(buffer.get(), numCopied);
     }
 
     bool IsWhiteSpace(const wstring value)
@@ -114,5 +72,19 @@ namespace Utils
         }
 
         return 0;
+    }
+
+    wstring GetUserObjectName(const HANDLE hObj)
+    {
+        auto bufferByteSize = DWORD();
+        GetUserObjectInformation(hObj, UOI_NAME, nullptr, 0, &bufferByteSize);
+        const auto error = GetLastError();
+        if (error != ERROR_INSUFFICIENT_BUFFER) throw Win32Exception(error);
+
+        const auto buffer = make_unique<wchar_t[]>(bufferByteSize / 2);
+        auto nameByteSize = DWORD();
+        if (!GetUserObjectInformation(hObj, UOI_NAME, buffer.get(), bufferByteSize, &nameByteSize)) throw Win32Exception();
+
+        return wstring(buffer.get(), (nameByteSize / 2) - 1);
     }
 }
