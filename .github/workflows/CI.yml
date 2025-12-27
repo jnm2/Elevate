@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request: ~
+  workflow_dispatch: ~
+
+jobs:
+  Compile:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up MSBuild
+      uses: microsoft/setup-msbuild@v2
+
+    - name: Compile
+      # PlatformToolset override is needed until Visual Studio 2026 is available on the windows-latest image
+      run: msbuild /p:Configuration=Release /p:PlatformToolset=v143 /v:m /bl
+
+    - name: Upload bin artifact
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: Bin
+        path: |
+          src\Elevate\bin\x64\Release\**\*
+          !src\Elevate\bin\x64\Release\**\*.pdb
+
+    - name: Upload symbols artifact
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: Symbols
+        path: src\Elevate\bin\x64\Release\**\*.pdb
+
+    - name: Upload logs artifact
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: Logs
+        path: msbuild.binlog
